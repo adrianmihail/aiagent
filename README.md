@@ -1,1 +1,1 @@
-An AI Agent based on the Google Gemini API\n
+An AI Agent based on the Google Gemini API

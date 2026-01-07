@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from google import genai
 import argparse
+from google.genai import types
 
 def main():
     print("Hello from aiagent!")
@@ -20,13 +21,18 @@ def main():
     parser.add_argument("user_prompt", type=str, help="User prompt")
     args = parser.parse_args()
     contents = args.user_prompt
-
-    # get response from client
-    model = "gemini-2.5-flash"
-    response = client.models.generate_content(model=model,contents=contents)
+    
+    # store user prompt
+    messages = [types.Content(role="user",parts=[types.Part(text=args.user_prompt)])]
 
     # print user prompt
     print(f"User prompt: {contents}")
+
+
+    # get response from client
+    model = "gemini-2.5-flash"
+    response = client.models.generate_content(model=model,contents=messages)
+
 
     # print number of tokens consumed by the interaction
     prompt_tokens = response.usage_metadata.prompt_token_count
