@@ -4,6 +4,7 @@ from google import genai
 import argparse
 from google.genai import types
 from prompts import SYSTEM_PROMPT
+from call_function import available_functions
 
 def main():
     print("Hello from aiagent!")
@@ -33,8 +34,12 @@ def main():
     response = client.models.generate_content(
         model=model,
         contents=messages,
-        config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT)
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT, 
+            tools=[available_functions]
+        ),
     )
+
 
     # print number of tokens consumed by the interaction
     # and user input
@@ -59,9 +64,12 @@ def main():
         elif prompt_tokens == None and response_tokens == None:
             raise RuntimeError("api request failed")
 
-    # print response from gemini client
-    print(response.text)
 
+    if not response.function_calls:
+        print(response.text)   
+    else:
+        for function_call in response.function_calls:
+            print(f"Calling function: {function_call.name}({function_call.args})")
 
 if __name__ == "__main__":
     main()
