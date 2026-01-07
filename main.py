@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from google import genai
 import argparse
 from google.genai import types
+from prompts import SYSTEM_PROMPT
 
 def main():
     print("Hello from aiagent!")
@@ -29,7 +30,11 @@ def main():
 
     # get response from gemini client
     model = "gemini-2.5-flash"
-    response = client.models.generate_content(model=model,contents=messages)
+    response = client.models.generate_content(
+        model=model,
+        contents=messages,
+        config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT)
+    )
 
     # print number of tokens consumed by the interaction
     # and user input
