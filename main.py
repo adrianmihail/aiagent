@@ -19,34 +19,43 @@ def main():
     # get user prompt
     parser = argparse.ArgumentParser(description="Chatbot")
     parser.add_argument("user_prompt", type=str, help="User prompt")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+
     args = parser.parse_args()
     contents = args.user_prompt
     
     # store user prompt
     messages = [types.Content(role="user",parts=[types.Part(text=args.user_prompt)])]
 
-    # print user prompt
-    print(f"User prompt: {contents}")
-
-
-    # get response from client
+    # get response from gemini client
     model = "gemini-2.5-flash"
     response = client.models.generate_content(model=model,contents=messages)
 
-
     # print number of tokens consumed by the interaction
+    # and user input
+    # only if --verbose is included in the user prompt
+
     prompt_tokens = response.usage_metadata.prompt_token_count
     response_tokens = response.usage_metadata.candidates_token_count
-
-    if prompt_tokens != None and response_tokens != None:
-        print(f"Prompt tokens: {prompt_tokens}")
-        print(f"Response tokens: {response_tokens}")
-    elif prompt_tokens == None and response_tokens == None:
-        raise RuntimeError("api request failed")
-
-    # print response from client
+    show_verbose = args.verbose
     
-    print(f"Response:\n{response.text}")
+    if show_verbose == True:
+        if prompt_tokens != None and response_tokens != None:
+            # print user prompt
+            print(f"User prompt: {contents}")
+
+            #print tokens
+            print(f"Prompt tokens: {prompt_tokens}")
+            print(f"Response tokens: {response_tokens}")
+
+            #print response from gemini client
+            print(f"Response:\n{response.text}")
+            
+        elif prompt_tokens == None and response_tokens == None:
+            raise RuntimeError("api request failed")
+
+    # print response from gemini client
+    print(response.text)
 
 
 if __name__ == "__main__":
