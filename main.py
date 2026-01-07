@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from google import genai
+import argparse
 
 def main():
     print("Hello from aiagent!")
@@ -14,9 +15,14 @@ def main():
     # load the gemini client
     client = genai.Client(api_key=api_key)
 
+    # get user prompt
+    parser = argparse.ArgumentParser(description="Chatbot")
+    parser.add_argument("user_prompt", type=str, help="User prompt")
+    args = parser.parse_args()
+    contents = args.user_prompt
+
     # get response from client
     model = "gemini-2.5-flash"
-    contents = "Why is Boot.dev such a great place to learn backend development? Use one paragraph maximum."
     response = client.models.generate_content(model=model,contents=contents)
 
     # print user prompt
@@ -29,7 +35,7 @@ def main():
     if prompt_tokens != None and response_tokens != None:
         print(f"Prompt tokens: {prompt_tokens}")
         print(f"Response tokens: {response_tokens}")
-    else:
+    elif prompt_tokens == None and response_tokens == None:
         raise RuntimeError("api request failed")
 
     # print response from client
