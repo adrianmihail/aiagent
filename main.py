@@ -5,6 +5,7 @@ import argparse
 from google.genai import types
 from prompts import SYSTEM_PROMPT
 from call_function import available_functions, call_function
+import sys
 
 def main():
     print("Hello from aiagent!")
@@ -38,6 +39,8 @@ def main():
             ),
         )
 
+        for candidate in response.candidates:
+            messages.append(candidate.content)
         
         if not response.usage_metadata:
             raise RuntimeError("Gemini API response appears to be malformed")
@@ -48,8 +51,7 @@ def main():
 
         if not response.function_calls:
             print("Response:")
-            print(response.text)
-            return
+            return response.text
 
         function_responses = []
         for function_call in response.function_calls:
@@ -68,10 +70,20 @@ def main():
                 print(f"-> {inner_result}")
             
             function_responses.append(result.parts[0])
+        
+        messages.append(types.Content(role="user", parts=function_responses))
     
     # loop over response to create conversation
     for _ in range(20):
-        generate_content(client,messages,args.verbose)
+        final_response = generate_content(client,messages,args.verbose)
+        
+        if final_response:
+            print("Final response:")
+            print(final_response)
+            return
+    
+    print("Maximum interations reached")
+    sys.exit(1)
         
 
 
