@@ -4,7 +4,7 @@ from google import genai
 import argparse
 from google.genai import types
 from prompts import SYSTEM_PROMPT
-from call_function import available_functions
+from call_function import available_functions, call_function
 
 def main():
     print("Hello from aiagent!")
@@ -29,47 +29,51 @@ def main():
     # store user prompt
     messages = [types.Content(role="user",parts=[types.Part(text=args.user_prompt)])]
 
-    # get response from gemini client
-    model = "gemini-2.5-flash"
-    response = client.models.generate_content(
-        model=model,
-        contents=messages,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT, 
-            tools=[available_functions]
-        ),
-    )
+    def generate_content(client, messages, verbose):
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=messages,
+            config=types.GenerateContentConfig(
+                tools=[available_functions], system_instruction=SYSTEM_PROMPT
+            ),
+        )
 
+        
+        if not response.usage_metadata:
+            raise RuntimeError("Gemini API response appears to be malformed")
 
-    # print number of tokens consumed by the interaction
-    # and user input
-    # only if --verbose is included in the user prompt
+        if verbose:
+            print("Prompt tokens:", response.usage_metadata.prompt_token_count)
+            print("Response tokens:", response.usage_metadata.candidates_token_count)
 
-    prompt_tokens = response.usage_metadata.prompt_token_count
-    response_tokens = response.usage_metadata.candidates_token_count
-    show_verbose = args.verbose
-    
-    if show_verbose == True:
-        if prompt_tokens != None and response_tokens != None:
-            # print user prompt
-            print(f"User prompt: {contents}")
+        if not response.function_calls:
+            print("Response:")
+            print(response.text)
+            return
 
-            #print tokens
-            print(f"Prompt tokens: {prompt_tokens}")
-            print(f"Response tokens: {response_tokens}")
-
-            #print response from gemini client
-            print(f"Response:\n{response.text}")
-            
-        elif prompt_tokens == None and response_tokens == None:
-            raise RuntimeError("api request failed")
-
-
-    if not response.function_calls:
-        print(response.text)   
-    else:
+        function_responses = []
         for function_call in response.function_calls:
-            print(f"Calling function: {function_call.name}({function_call.args})")
+            result = call_function(function_call, verbose)
+            if (
+                not result.parts
+                or not result.parts[0].function_response
+                or not result.parts[0].function_response.response
+            ):
+                raise RuntimeError(f"Empty function response for {function_call.name}")
+            
+            response_dict = result.parts[0].function_response.response
+            inner_result = response_dict.get("result") if isinstance(response_dict,dict) else response_dict
+            
+            if verbose:
+                print(f"-> {inner_result}")
+            
+            function_responses.append(result.parts[0])
+    
+    # loop over response to create conversation
+    for _ in range(20):
+        generate_content(client,messages,args.verbose)
+        
+
 
 if __name__ == "__main__":
     main()
